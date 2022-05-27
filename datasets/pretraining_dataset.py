@@ -24,6 +24,8 @@ class pretraining_dataset(data.Dataset):
         self.train_df = train_df
         self.wav_folder = wav_folder
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("microsoft/wavlm-base-plus-sv")
+        self.traditional_augmented_folder = traditional_augmented_folder
+        self.neural_augmented_path = neural_augmented_path
 
 
     def __getitem__(self, index):
@@ -38,10 +40,10 @@ class pretraining_dataset(data.Dataset):
             filename = row.filename.item()
         elif sampling_type == PairType.neural_augmentation:
             label = 1
-            filename = os.listdir(neural_augmented_path)[randint(0, len(os.listdir(neural_augmented_path))-1)]
+            filename = os.listdir(self.neural_augmented_path)[randint(0, len(os.listdir(self.neural_augmented_path))-1)]
         elif PairType.feature_augmentation:
             label = 1
-            filename = os.listdir(traditional_augmented_folder)[randint(0, len(os.listdir(traditional_augmented_folder))-1)]
+            filename = os.listdir(self.traditional_augmented_folder)[randint(0, len(os.listdir(self.traditional_augmented_folder))-1)]
         else:
             # error in augmentation type, return the same with label 1.
             label = 1
