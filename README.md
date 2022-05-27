@@ -12,3 +12,13 @@ python pretraining_dataloader_creation.py \
   --wav_folder data/dist/wav \
   --output_folder data/dataloaders
 ```
+
+Run pretraining:
+
+```
+python run_pretraining.py \
+  --dataloader_folder data/dataloaders \
+  --batch_size 16 \
+  --n_epochs 10 \
+  --learning_rate 1e-5
+```
