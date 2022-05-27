@@ -20,6 +20,18 @@ parser.add_argument(
         "--output_folder",
         help="Output folder to store dataloaders",
         required=True)
+parser.add_argument(
+    "--batch_size",
+    help="Training batch size",
+    type=int,
+    default=16,
+    required=False)
+parser.add_argument(
+    "--n_workers",
+    help="Number of workers",
+    type=int,
+    default=4,
+    required=False)
 
 args = parser.parse_args()
 
@@ -32,5 +44,5 @@ le.fit(train_df.label)
 train_df['categorical_label'] = le.transform(train_df.label)
 
 train_dataloader = pretraining_dataset(train_df, args.wav_folder)
-train_dataloader = DataLoader(train_dataloader, shuffle=True)
+train_dataloader = DataLoader(train_dataloader, shuffle=True, batch_size=args.batch_size, num_workers=args.n_workers)
 torch.save(train_dataloader, os.path.join(args.output_folder, "pretrain_dataloader.bkp"))

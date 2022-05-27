@@ -17,7 +17,7 @@ class pretraining_dataset(data.Dataset):
                 train_df, 
                 wav_folder, 
                 traditional_augmented_folder="data/augmented/traditional", 
-                neural_augmented_path="data/augmented/neural/M1"):
+                neural_augmented_folder="data/augmented/neural"):
         self.files = list(train_df.filename)
         self.labels = list(train_df.label)
         self.categorical_labels = list(train_df.categorical_label)
@@ -25,35 +25,34 @@ class pretraining_dataset(data.Dataset):
         self.wav_folder = wav_folder
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("microsoft/wavlm-base-plus-sv")
         self.traditional_augmented_folder = traditional_augmented_folder
-        self.neural_augmented_path = neural_augmented_path
+        self.neural_augmented_folder = neural_augmented_folder
 
 
     def __getitem__(self, index):
         sampling_type_list = [PairType.neural_augmentation, PairType.feature_augmentation, PairType.negative_sample]
         sampling_type = np.random.choice(sampling_type_list, 1, p=[0.25, 0.25, 0.5])[0]
         if sampling_type == PairType.negative_sample:
-            label = 0
+            label = -1
             while True:
                 row = self.train_df.sample()
                 if row.categorical_label.item() != self.categorical_labels[index]:
                     break
-            filename = row.filename.item()
+            filename = os.path.join(self.wav_folder, row.filename.item())
         elif sampling_type == PairType.neural_augmentation:
             label = 1
-            filename = os.listdir(self.neural_augmented_path)[randint(0, len(os.listdir(self.neural_augmented_path))-1)]
+            filename = os.path.join(self.neural_augmented_folder, self.files[index])
         elif PairType.feature_augmentation:
             label = 1
-            filename = os.listdir(self.traditional_augmented_folder)[randint(0, len(os.listdir(self.traditional_augmented_folder))-1)]
+            filename = os.path.join(self.traditional_augmented_folder, self.files[index])
         else:
             # error in augmentation type, return the same with label 1.
             label = 1
             filename = os.path.join(self.wav_folder, self.files[index])
 
-        
         data_mono, sr = librosa.load(os.path.join(self.wav_folder, self.files[index]), sr=16000, mono=True, res_type='soxr_qq')
-        first = self.feature_extractor(data_mono, return_tensors="pt", sampling_rate=sr, padding="max_length", max_length=16000, truncation=True).input_values
-        data_mono, sr = librosa.load(os.path.join(self.wav_folder, filename), sr=16000, mono=True, res_type='soxr_qq')
-        second = self.feature_extractor(data_mono, return_tensors="pt", sampling_rate=sr, padding="max_length", max_length=16000, truncation=True).input_values
+        first = self.feature_extractor([data_mono], return_tensors="pt", sampling_rate=sr, padding="max_length", max_length=32000, truncation=True).input_values[0]
+        data_mono, sr = librosa.load(filename, sr=16000, mono=True, res_type='soxr_qq')
+        second = self.feature_extractor([data_mono], return_tensors="pt", sampling_rate=sr, padding="max_length", max_length=32000, truncation=True).input_values[0]
         return [first, second], label
             
 
