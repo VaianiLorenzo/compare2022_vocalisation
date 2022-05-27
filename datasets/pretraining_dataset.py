@@ -3,10 +3,21 @@ import torch.utils.data as data
 from transformers import Wav2Vec2FeatureExtractor
 from random import randint
 import librosa
+import enum
+import numpy as np
+
+class PairType(enum.Enum):
+    neural_augmentation = 1
+    feature_augmentation = 2
+    negative_sample = 3
 
 class pretraining_dataset(data.Dataset):
 
-    def __init__(self, train_df, wav_folder):
+    def __init__(self, 
+                train_df, 
+                wav_folder, 
+                traditional_augmented_folder="data/augmented/traditional", 
+                neural_augmented_path="data/augmented/DL"):
         self.files = list(train_df.filename)
         self.labels = list(train_df.label)
         self.categorical_labels = list(train_df.categorical_label)
@@ -16,20 +27,26 @@ class pretraining_dataset(data.Dataset):
 
 
     def __getitem__(self, index):
-        aug_type = randint(0,3)
-        if aug_type < 2:
+        sampling_type_list = [PairType.neural_augmentation, PairType.feature_augmentation, PairType.negative_sample]
+        sampling_type = np.random.choice(sampling_type_list, 1, p=[0.25, 0.25, 0.5])[0]
+        if sampling_type == PairType.negative_sample:
             label = 0
             while True:
                 row = self.train_df.sample()
                 if row.categorical_label.item() != self.categorical_labels[index]:
                     break
             filename = row.filename.item()
-        elif aug_type == 2:
+        elif sampling_type == PairType.neural_augmentation:
             label = 1
-            filename = os.listdir("data/augmented/DL")[randint(0, len(os.listdir("data/augmented/DL"))-1)]
+            filename = os.listdir(neural_augmented_path)[randint(0, len(os.listdir(neural_augmented_path))-1)]
+        elif PairType.feature_augmentation:
+            label = 1
+            filename = os.listdir(traditional_augmented_folder)[randint(0, len(os.listdir(traditional_augmented_folder))-1)]
         else:
+            # error in augmentation type, return the same with label 1.
             label = 1
-            filename = os.listdir("data/augmented/traditional")[randint(0, len(os.listdir("data/augmented/traditional"))-1)]
+            filename = os.path.join(self.wav_folder, self.files[index])
+
         
         data_mono, sr = librosa.load(os.path.join(self.wav_folder, self.files[index]), sr=16000, mono=True, res_type='soxr_qq')
         first = self.feature_extractor(data_mono, return_tensors="pt", sampling_rate=sr, padding="max_length", max_length=16000, truncation=True).input_values
