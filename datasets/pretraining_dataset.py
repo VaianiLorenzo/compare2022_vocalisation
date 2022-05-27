@@ -17,7 +17,7 @@ class pretraining_dataset(data.Dataset):
                 train_df, 
                 wav_folder, 
                 traditional_augmented_folder="data/augmented/traditional", 
-                neural_augmented_path="data/augmented/DL"):
+                neural_augmented_path="data/augmented/neural/M1"):
         self.files = list(train_df.filename)
         self.labels = list(train_df.label)
         self.categorical_labels = list(train_df.categorical_label)
