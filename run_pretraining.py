@@ -35,7 +35,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 model = WavLMForXVector.from_pretrained("microsoft/wavlm-base-plus-sv")
 model.to(device)
-train_dataloader = torch.load(os.path.join(args.dataloader_folder, "pretraining_dataloader.bkp"))
+train_dataloader = torch.load(os.path.join(args.dataloader_folder, "pretrain_dataloader.bkp"))
 
 step_size = args.n_epochs * len(train_dataloader)
 loss_function = CosineEmbeddingLoss()
