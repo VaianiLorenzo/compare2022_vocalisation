@@ -11,7 +11,7 @@ from torch.nn import CosineEmbeddingLoss
 from torch.utils.data import DataLoader
 from datasets.pretraining_dataset import pretraining_dataset
 
-parser = argparse.ArgumentParser(description="Train Perceiver")
+parser = argparse.ArgumentParser(description="WavLM pretaraining with contrastive learning")
 parser.add_argument(
     "--csv_folder",
     help="Input folder containing the csv files of each split",

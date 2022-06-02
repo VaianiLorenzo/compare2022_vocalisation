@@ -1,5 +1,5 @@
+import os
 import torch
-import torchaudio
 from transformers import AutoModelForAudioClassification, TrainingArguments, Trainer, AutoFeatureExtractor, EarlyStoppingCallback
 import numpy as np 
 import pandas as pd
@@ -9,36 +9,11 @@ import torch.nn as nn
 from sklearn.utils import class_weight
 import argparse
 from tqdm import tqdm
+from datasets.finetuning_dataset import finetuning_dataset
 import warnings
 warnings.filterwarnings("ignore")
 
 path = '../../../data1/akoudounas/vocalisation/'
-
-""" Dataset Class """
-class Dataset(torch.utils.data.Dataset):
-    def __init__(self, examples, feature_extractor, max_duration, device):
-        self.examples = examples['filename']
-        self.labels = examples['label']
-        self.feature_extractor = feature_extractor
-        self.max_duration = max_duration
-        self.device = device 
-
-    def __getitem__(self, idx):
-        inputs = self.feature_extractor(
-            librosa.resample(np.asarray(torchaudio.load(self.examples[idx])[0]), 48_000, 16_000).squeeze(0),
-            sampling_rate=self.feature_extractor.sampling_rate, 
-            return_tensors="pt",
-            max_length=int(self.feature_extractor.sampling_rate * self.max_duration), 
-            truncation=True,
-            padding='max_length'
-        )#.to(self.device)
-        item = {'input_values': inputs['input_values'].squeeze(0)}
-        item["labels"] = torch.tensor(self.labels[idx])
-        return item
-
-    def __len__(self):
-        return len(self.examples)
-
 
 """ Trainer Class """
 class WeightedTrainer(Trainer):
@@ -77,32 +52,52 @@ def compute_metrics(pred):
 
 """ Define Command Line Parser """
 def parse_cmd_line_params():
-    parser = argparse.ArgumentParser(description="batch_size")
+    parser = argparse.ArgumentParser(description="WavLM finetuning")
     parser.add_argument(
-        "--batch",
-        help="Allows to specify values for the configuration entries to override default settings",
-        default=8, 
+        "--csv_folder",
+        help="Input folder containing the csv files of each split",
+        required=True)
+    parser.add_argument(
+        "--batch_size",
+        help="Batch size",
+        default=16, 
         type=int,
         required=False)
-
+    parser.add_argument(
+        "--n_workers",
+        help="Number of workers",
+        type=int,
+        default=4,
+        required=False)
+    parser.add_argument(
+        "--n_epochs",
+        help="Number of finetuning epochs",
+        type=int,
+        default=20,
+        required=False)
+    parser.add_argument(
+        "--learning_rate",
+        help="Learning rate",
+        type=float,
+        default=3e-5,
+        required=False)
     args = parser.parse_args()
     return args
 
 
 """ Main Program """
 if __name__ == '__main__':
-
-    torch.multiprocessing.set_start_method('spawn')
-
+    
     ## Utils 
+    torch.multiprocessing.set_start_method('spawn')
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    print(device)
-
     max_duration = 5.0 
+    args = parse_cmd_line_params()
+
 
     """ Preprocess Data """
     ## Train
-    df_train = pd.read_csv('./lab/train.csv')
+    df_train = pd.read_csv(os.path.join(args.csv_folder, 'train.csv'))
     emotions = df_train['label'].unique()
 
     ## Prepare the labels
@@ -116,16 +111,14 @@ if __name__ == '__main__':
         df_train.loc[index,'filename'] = path + df_train.loc[index,'filename']
         df_train.loc[index,'label'] = label2id[df_train.loc[index,'label']]
     df_train['label'] = df_train['label'].astype(int)
-    df_train.to_csv('df_train.csv', index=False)
+    #df_train.to_csv('df_train.csv', index=False)
 
-
-    ## Validation 
-    df_valid = pd.read_csv('./lab/devel.csv')
+    df_valid = pd.read_csv(os.path.join(args.csv_folder, 'devel.csv'))
     for index in tqdm(df_valid.index):
         df_valid.loc[index,'filename'] = path + df_valid.loc[index,'filename']
         df_valid.loc[index,'label'] = label2id[df_valid.loc[index,'label']]
     df_valid['label'] = df_valid['label'].astype(int)
-    df_valid.to_csv('df_valid.csv', index=False)
+    #df_valid.to_csv('df_valid.csv', index=False)
 
 
     """ Define Model """
@@ -139,15 +132,13 @@ if __name__ == '__main__':
         id2label=id2label
     )
 
-
     """ Build Dataset """
-    train_dataset = Dataset(df_train, feature_extractor, max_duration, device)
-    valid_dataset = Dataset(df_valid, feature_extractor, max_duration, device)
-
+    train_dataset = finetuning_dataset(df_train, feature_extractor, max_duration, device)
+    valid_dataset = finetuning_dataset(df_valid, feature_extractor, max_duration, device)
 
     """ Training Model """
     model_name = model_checkpoint.split("/")[-1]
-    batch_size = parse_cmd_line_params().batch
+    batch_size = args.batch_size
     output_dir = path + model_name + "-finetuned-vocalisation"
 
     # Define args
@@ -156,11 +147,11 @@ if __name__ == '__main__':
         overwrite_output_dir=True,
         evaluation_strategy = "epoch",
         save_strategy = "epoch",
-        learning_rate=3e-5,
+        learning_rate=args.learning_rate,
         per_device_train_batch_size=batch_size,
         gradient_accumulation_steps=4,
         per_device_eval_batch_size=batch_size,
-        num_train_epochs=10,
+        num_train_epochs=args.n_epochs,
         warmup_ratio=0.1,
         logging_steps=30,
         eval_steps=30,
@@ -170,7 +161,7 @@ if __name__ == '__main__':
         metric_for_best_model="accuracy",
         fp16=True,
         fp16_full_eval=True,
-        dataloader_num_workers=4,
+        dataloader_num_workers=args.n_workers,
         dataloader_pin_memory=True,
     )
 
