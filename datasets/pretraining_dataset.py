@@ -17,7 +17,9 @@ class pretraining_dataset(data.Dataset):
                 train_df, 
                 wav_folder, 
                 traditional_augmented_folder="data/augmented/traditional", 
-                neural_augmented_folder="data/augmented/neural"):
+                neural_augmented_folder="data/augmented/neural",
+                neural_augmentation=True,
+                traditional_augmentation=True):
         self.files = list(train_df.filename)
         self.labels = list(train_df.label)
         self.categorical_labels = list(train_df.categorical_label)
@@ -26,11 +28,21 @@ class pretraining_dataset(data.Dataset):
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("microsoft/wavlm-base-plus-sv")
         self.traditional_augmented_folder = traditional_augmented_folder
         self.neural_augmented_folder = neural_augmented_folder
+        if neural_augmentation:
+            if traditional_augmentation:
+                self.proportions = [0.25, 0.25, 0.5]
+            else:
+                self.proportions = [0.5, 0.0, 0.5]
+        else:
+            if traditional_augmentation:
+                self.proportions = [0.0, 0.5, 0.5]
+            else:
+                self.proportions = [0.0, 0.0, 1.0]
 
 
     def __getitem__(self, index):
         sampling_type_list = [PairType.neural_augmentation, PairType.feature_augmentation, PairType.negative_sample]
-        sampling_type = np.random.choice(sampling_type_list, 1, p=[0.25, 0.25, 0.5])[0]
+        sampling_type = np.random.choice(sampling_type_list, 1, p=self.proportions)[0]
         if sampling_type == PairType.negative_sample:
             label = -1
             while True:
