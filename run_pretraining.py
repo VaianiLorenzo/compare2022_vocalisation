@@ -1,7 +1,6 @@
 import argparse
 from cProfile import label
 import os
-from statistics import correlation
 import pandas as pd
 from tqdm import tqdm
 from sklearn import preprocessing
@@ -53,7 +52,7 @@ parser.add_argument(
     "--learning_rate",
     help="Learning rate",
     type=float,
-    default=1e-5,
+    default=1e-6,
     required=False)
 parser.add_argument(
     "--step_size",
@@ -65,7 +64,7 @@ parser.add_argument(
     "--log_steps",
     help="Number of batch to process before printing info (such as current learning rate and loss value)",
     type=int,
-    default=39,
+    default=30,
     required=False)
 neural_parser = parser.add_mutually_exclusive_group(required=False)
 neural_parser.add_argument('--neural_augmentation', dest='neural_augmentation', action='store_true')
@@ -129,7 +128,7 @@ for i in range(args.n_epochs):
         scheduler.step()
         current_loss += loss.item()
 
-        if j % args.log_steps == 0 and j != 0:
+        if (j+1)%args.log_steps == 0:
             print("LR:", scheduler.get_last_lr())
             print('Train loss at epoch %5d after mini-batch %5d: %.8f' % (i+1, j+1, current_loss/args.log_steps))
             with open(args.output_log_file, "a") as f:
@@ -145,13 +144,13 @@ for i in range(args.n_epochs):
             second_embeddings = torch.nn.functional.normalize(model(pair[1].to(device)).embeddings, dim=-1)
             loss = loss_function(first_embeddings, second_embeddings, label.to(device))
             current_loss += loss.item()
-            den = den + len(label)
+
         
-    print('Dev loss at epoch %5d: %.8f' % (i+1, current_loss/den))
+    print('Dev loss at epoch %5d: %.8f' % (i+1, current_loss/len(dev_dataloader)))
     with open(args.output_log_file, "a") as f:
-        f.write('Dev loss at epoch %5d: %.8f\n' % (i+1, current_loss/den))
-    if best_loss == None or best_loss > current_loss/den:
-        best_loss = current_loss/den
+        f.write('Dev loss at epoch %5d: %.8f\n' % (i+1, current_loss/len(dev_dataloader)))
+    if best_loss == None or best_loss > current_loss/len(dev_dataloader):
+        best_loss = current_loss/len(dev_dataloader)
         best_epoch = i+1
         model_name = "model_" + str(i+1) + ".model"
         ckp_dir = args.output_checkpoint_folder + "/" + str(model_name) 
