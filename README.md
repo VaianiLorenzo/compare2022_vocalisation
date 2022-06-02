@@ -4,21 +4,20 @@ Lorem ipsum
 
 ## Pretraining
 
-Create pretraining dataloader:
-
-```
-python pretraining_dataloader_creation.py \
-  --csv_folder data/dist/lab \
-  --wav_folder data/dist/wav \
-  --output_folder data/dataloaders
-```
-
 Run pretraining:
 
 ```
 python run_pretraining.py \
-  --dataloader_folder data/dataloaders \
+  --csv_folder data/dist/lab \
+  --wav_folder data/dist/wav \
+  --output_checkpoint_folder data/pretraining_checkpoints \
+  --output_log_file data/pretraing_log.log \
   --batch_size 16 \
+  --n_workers 4 \
   --n_epochs 10 \
-  --learning_rate 1e-5
+  --learning_rate 1e-6 \
+  --step_size 20 \
+  --log_steps 20 \
+  --neural_augmentation \
+  --traditional_augmentation
 ```
