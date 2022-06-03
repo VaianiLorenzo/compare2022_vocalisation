@@ -5,7 +5,7 @@ import torch.utils.data as data
 import librosa
 import numpy as np
 
-class Dataset(data.Dataset):
+class finetuning_dataset(data.Dataset):
     def __init__(self, examples, feature_extractor, max_duration, device):
         self.examples = examples['filename']
         self.labels = examples['label']

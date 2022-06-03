@@ -1,6 +1,8 @@
 import os
 import torch
-from transformers import AutoModelForAudioClassification, TrainingArguments, Trainer, AutoFeatureExtractor, EarlyStoppingCallback
+from transformers import TrainingArguments
+from transformers import Trainer
+from transformers import AutoFeatureExtractor, EarlyStoppingCallback
 import numpy as np 
 import pandas as pd
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, recall_score
@@ -9,7 +11,7 @@ import torch.nn as nn
 from sklearn.utils import class_weight
 import argparse
 from tqdm import tqdm
-from datasets.finetuning_dataset import finetuning_dataset
+from datasetss.finetuning_dataset import finetuning_dataset
 import warnings
 warnings.filterwarnings("ignore")
 
