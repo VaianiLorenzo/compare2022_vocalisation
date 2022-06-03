@@ -3,7 +3,7 @@ import torch
 from transformers import AutoModelForAudioClassification, TrainingArguments, Trainer, AutoFeatureExtractor, EarlyStoppingCallback
 import numpy as np 
 import pandas as pd
-from sklearn.metrics import precision_recall_fscore_support, accuracy_score
+from sklearn.metrics import precision_recall_fscore_support, accuracy_score, recall_score
 import librosa
 import torch.nn as nn
 from sklearn.utils import class_weight
@@ -13,7 +13,7 @@ from datasets.finetuning_dataset import finetuning_dataset
 import warnings
 warnings.filterwarnings("ignore")
 
-path = '../../../data1/akoudounas/vocalisation/'
+path = 'data/dist/wav/'
 
 """ Trainer Class """
 class WeightedTrainer(Trainer):
@@ -35,15 +35,18 @@ def compute_metrics(pred):
     labels = pred.label_ids
     preds = np.argmax(pred.predictions, axis=1)
     precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='weighted')
+    uar = recall_score(labels, preds, average='macro')
     acc = accuracy_score(labels, preds)
 
     print('F1 score: ' + str(f1))
     print('Accuracy: ' + str(acc))
     print('Precision: ' + str(precision))
     print('Recall: ' + str(recall))
+    print('UAR: ' + str(uar))
       
     return {
         'accuracy': acc,
+        'uar': uar,
         'f1': f1,
         'precision': precision,
         'recall': recall
@@ -56,6 +59,10 @@ def parse_cmd_line_params():
     parser.add_argument(
         "--csv_folder",
         help="Input folder containing the csv files of each split",
+        required=True)
+    parser.add_argument(
+        "--pretrained_model",
+        help="Pretrained model to be finetuned",
         required=True)
     parser.add_argument(
         "--batch_size",
@@ -91,7 +98,7 @@ if __name__ == '__main__':
     ## Utils 
     torch.multiprocessing.set_start_method('spawn')
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    max_duration = 5.0 
+    max_duration = 2 
     args = parse_cmd_line_params()
 
 
@@ -123,14 +130,22 @@ if __name__ == '__main__':
 
     """ Define Model """
     # model_checkpoint = "facebook/wav2vec2-xls-r-300m"
-    model_checkpoint = "microsoft/wavlm-large"   
+
+    model_checkpoint = "microsoft/wavlm-large"  
+    model = torch.load(args.pretrained_model) 
     feature_extractor = AutoFeatureExtractor.from_pretrained(model_checkpoint)
+    '''
     model = AutoModelForAudioClassification.from_pretrained(
-        model_checkpoint, 
+        pretrained_model, 
         num_labels=num_labels,
         label2id=label2id,
-        id2label=id2label
+        id2label=id2label,
+        local_files_only=True
     )
+    '''
+    model.num_labels = num_labels
+    model.label2id=label2id,
+    model.id2label=id2label
 
     """ Build Dataset """
     train_dataset = finetuning_dataset(df_train, feature_extractor, max_duration, device)

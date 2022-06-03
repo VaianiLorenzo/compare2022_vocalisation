@@ -4,7 +4,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from sklearn import preprocessing
-from transformers import WavLMForXVector
+from transformers import AutoModelForAudioClassification
 import torch
 from torch import optim
 from torch.nn import CosineEmbeddingLoss
@@ -19,6 +19,10 @@ parser.add_argument(
 parser.add_argument(
     "--wav_folder",
     help="Input folder containing the wav files",
+    required=True)
+parser.add_argument(
+    "--model_name",
+    help="Name of the pretrained model to be load",
     required=True)
 parser.add_argument(
     "--output_checkpoint_folder",
@@ -98,7 +102,7 @@ dev_dataloader = pretraining_dataset(dev_df, args.wav_folder, neural_augmentatio
 dev_dataloader = DataLoader(dev_dataloader, shuffle=True, batch_size=args.batch_size, num_workers=args.n_workers)
 
 # model initialization
-model = WavLMForXVector.from_pretrained("microsoft/wavlm-base-plus-sv")
+model = AutoModelForAudioClassification.from_pretrained(args.model_name, output_hidden_states=True)
 model.to(device)
 
 # training parameters configuration
@@ -119,8 +123,8 @@ for i in range(args.n_epochs):
 
     for j, data in enumerate(tqdm(train_dataloader), 0):
         pair, label = data
-        first_embeddings = torch.nn.functional.normalize(model(pair[0].to(device)).embeddings, dim=-1)
-        second_embeddings = torch.nn.functional.normalize(model(pair[1].to(device)).embeddings, dim=-1)
+        first_embeddings = torch.nn.functional.normalize(model(pair[0].to(device)).hidden_states[-1].mean(1), dim=-1)
+        second_embeddings = torch.nn.functional.normalize(model(pair[1].to(device)).hidden_states[-1].mean(1), dim=-1)
         loss = loss_function(first_embeddings, second_embeddings, label.to(device))
 
         loss.backward()
@@ -140,8 +144,8 @@ for i in range(args.n_epochs):
     with torch.no_grad():
         for j, data in enumerate(tqdm(dev_dataloader), 0):
             pair, label = data
-            first_embeddings = torch.nn.functional.normalize(model(pair[0].to(device)).embeddings, dim=-1)
-            second_embeddings = torch.nn.functional.normalize(model(pair[1].to(device)).embeddings, dim=-1)
+            first_embeddings = torch.nn.functional.normalize(model(pair[0].to(device)).hidden_states[-1].mean(1), dim=-1)
+            second_embeddings = torch.nn.functional.normalize(model(pair[1].to(device)).hidden_states[-1].mean(1), dim=-1)
             loss = loss_function(first_embeddings, second_embeddings, label.to(device))
             current_loss += loss.item()
 
