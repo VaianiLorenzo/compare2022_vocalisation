@@ -64,6 +64,10 @@ def parse_cmd_line_params():
         help="Input folder containing the csv files of each split",
         required=True)
     parser.add_argument(
+        "--wav_folder",
+        help="Input folder containing the wav files",
+        required=True)
+    parser.add_argument(
         "--pretrained_model",
         help="Pretrained model to be finetuned",
         required=True)
@@ -95,6 +99,18 @@ def parse_cmd_line_params():
         type=float,
         default=3e-5,
         required=False)
+    parser.add_argument(
+        "--output_dir",
+        help="Output Directory",
+        required=True)
+    neural_parser = parser.add_mutually_exclusive_group(required=False)
+    neural_parser.add_argument('--neural_augmentation', dest='neural_augmentation', action='store_true')
+    neural_parser.add_argument('--no-neural_augmentation', dest='neural_augmentation', action='store_false')
+    parser.set_defaults(neural_augmentation=True)
+    traditional_parser = parser.add_mutually_exclusive_group(required=False)
+    traditional_parser.add_argument('--traditional_augmentation', dest='traditional_augmentation', action='store_true')
+    traditional_parser.add_argument('--no-traditional_augmentation', dest='traditional_augmentation', action='store_false')
+    parser.set_defaults(traditional_augmentation=True)
     args = parser.parse_args()
     return args
 
@@ -122,13 +138,13 @@ if __name__ == '__main__':
     num_labels = len(id2label)
 
     for index in tqdm(df_train.index):
-        df_train.loc[index,'filename'] = path + df_train.loc[index,'filename']
+        # df_train.loc[index,'filename'] = path + df_train.loc[index,'filename']
         df_train.loc[index,'label'] = label2id[df_train.loc[index,'label']]
     df_train['label'] = df_train['label'].astype(int)
 
     df_valid = pd.read_csv(os.path.join(args.csv_folder, 'devel.csv'))
     for index in tqdm(df_valid.index):
-        df_valid.loc[index,'filename'] = path + df_valid.loc[index,'filename']
+        # df_valid.loc[index,'filename'] = path + df_valid.loc[index,'filename']
         df_valid.loc[index,'label'] = label2id[df_valid.loc[index,'label']]
     df_valid['label'] = df_valid['label'].astype(int)
 
@@ -157,19 +173,16 @@ if __name__ == '__main__':
     model.id2label=id2label
 
     """ Build Dataset """
-    train_dataset = finetuning_dataset(df_train, feature_extractor, max_duration, device)
-    valid_dataset = finetuning_dataset(df_valid, feature_extractor, max_duration, device)
-    print("LEN TRAIN DATASET", len(train_dataset))
-    print("LEN VALID DATASET", len(valid_dataset))  
+    train_dataset = finetuning_dataset(df_train, args.wav_folder, feature_extractor, max_duration, device, neural_augmentation=args.neural_augmentation, traditional_augmentation=args.traditional_augmentation)
+    valid_dataset = finetuning_dataset(df_valid, args.wav_folder, feature_extractor, max_duration, device, neural_augmentation=args.neural_augmentation, traditional_augmentation=args.traditional_augmentation)
 
     """ Training Model """
     model_name = model_checkpoint.split("/")[-1]
     batch_size = args.batch_size
-    output_dir = model_name + "-finetuned-vocalisation"
 
     # Define args
     training_args = TrainingArguments(
-        output_dir=output_dir,
+        output_dir=args.output_dir,
         overwrite_output_dir=True,
         evaluation_strategy = "epoch",
         save_strategy = "epoch",
@@ -200,18 +213,18 @@ if __name__ == '__main__':
 
 
     ## Trainer 
-    early_stopping = EarlyStoppingCallback(early_stopping_patience=2)
+    #early_stopping = EarlyStoppingCallback(early_stopping_patience=2)
     trainer = WeightedTrainer(
         class_weights=class_weights,
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=valid_dataset,
-        callbacks=[early_stopping],
+    #    callbacks=[early_stopping],
         compute_metrics=compute_metrics
     )
 
     # Train and Evaluate
     trainer.train()
-    trainer.save_model(output_dir)
+    trainer.save_model(args.output_dir)
     trainer.evaluate()
