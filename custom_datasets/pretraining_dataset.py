@@ -16,6 +16,7 @@ class pretraining_dataset(data.Dataset):
     def __init__(self, 
                 train_df, 
                 wav_folder, 
+                feature_extractor_name,
                 traditional_augmented_folder="data/augmented/traditional", 
                 neural_augmented_folder="data/augmented/neural",
                 neural_augmentation=True,
@@ -25,7 +26,7 @@ class pretraining_dataset(data.Dataset):
         self.categorical_labels = list(train_df.categorical_label)
         self.train_df = train_df
         self.wav_folder = wav_folder
-        self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained("microsoft/wavlm-base-plus-sv")
+        self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(feature_extractor_name)
         self.traditional_augmented_folder = traditional_augmented_folder
         self.neural_augmented_folder = neural_augmented_folder
         if neural_augmentation:
