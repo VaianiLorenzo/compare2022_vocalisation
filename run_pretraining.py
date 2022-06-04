@@ -9,7 +9,7 @@ import torch
 from torch import optim
 from torch.nn import CosineEmbeddingLoss
 from torch.utils.data import DataLoader
-from datasetss.pretraining_dataset import pretraining_dataset
+from custom_datasets.pretraining_dataset import pretraining_dataset
 
 parser = argparse.ArgumentParser(description="WavLM pretaraining with contrastive learning")
 parser.add_argument(
@@ -86,24 +86,33 @@ if not os.path.isdir(args.output_checkpoint_folder):
 # device selection
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+# model initialization
+if args.model_name == 'wav2vec2':
+    model_checkpoint = "facebook/wav2vec2-base"
+elif args.model_name == 'wavlm':
+    model_checkpoint = "microsoft/wavlm-base"  
+else:
+    print('Model Checkpoint not valid! Try again!')
+    exit()
+model = AutoModelForAudioClassification.from_pretrained(model_checkpoint, output_hidden_states=True, num_labels=6)
+model.to(device)
+
 # dataloader creation
 train_df = pd.read_csv(os.path.join(args.csv_folder, "train.csv"))
 le = preprocessing.LabelEncoder()
 le.fit(train_df.label)
 train_df['categorical_label'] = le.transform(train_df.label)
-train_dataloader = pretraining_dataset(train_df, args.wav_folder, neural_augmentation=args.neural_augmentation, traditional_augmentation=args.traditional_augmentation)
+train_dataloader = pretraining_dataset(train_df, args.wav_folder, model_checkpoint, neural_augmentation=args.neural_augmentation, traditional_augmentation=args.traditional_augmentation)
 train_dataloader = DataLoader(train_dataloader, shuffle=True, batch_size=args.batch_size, num_workers=args.n_workers)
 
 dev_df = pd.read_csv(os.path.join(args.csv_folder, "devel.csv"))
 le = preprocessing.LabelEncoder()
 le.fit(dev_df.label)
 dev_df['categorical_label'] = le.transform(dev_df.label)
-dev_dataloader = pretraining_dataset(dev_df, args.wav_folder, neural_augmentation=args.neural_augmentation, traditional_augmentation=args.traditional_augmentation)
+dev_dataloader = pretraining_dataset(dev_df, args.wav_folder, model_checkpoint, neural_augmentation=args.neural_augmentation, traditional_augmentation=args.traditional_augmentation)
 dev_dataloader = DataLoader(dev_dataloader, shuffle=True, batch_size=args.batch_size, num_workers=args.n_workers)
 
-# model initialization
-model = AutoModelForAudioClassification.from_pretrained(args.model_name, output_hidden_states=True, num_labels=6)
-model.to(device)
+
 
 # training parameters configuration
 step_size = args.step_size * len(train_dataloader)
