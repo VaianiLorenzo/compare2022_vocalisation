@@ -19,7 +19,8 @@ python run_pretraining.py \
   --step_size 20 \
   --log_steps 20 \
   --neural_augmentation \
-  --traditional_augmentation
+  --traditional_augmentation \
+  --model_name wav2vec2 \
 ```
 
 ## Finetuning
@@ -27,10 +28,12 @@ python run_pretraining.py \
 Run finetuning:
 
 ```
-python run_pretraining.py \
+python run_finetuning.py \
   --csv_folder data/dist/lab \
   --batch_size 16 \
   --n_workers 4 \
-  --n_epochs 20 \
+  --n_epochs 100 \
   --learning_rate 3e-5 \
+  --pretrained_model data/pretraining_checkpoints/model_x.model \
+  --feature_extractor wav2vec2 \
 ```
