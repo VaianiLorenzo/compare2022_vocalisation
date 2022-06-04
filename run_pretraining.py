@@ -9,7 +9,7 @@ import torch
 from torch import optim
 from torch.nn import CosineEmbeddingLoss
 from torch.utils.data import DataLoader
-from datasets.pretraining_dataset import pretraining_dataset
+from datasetss.pretraining_dataset import pretraining_dataset
 
 parser = argparse.ArgumentParser(description="WavLM pretaraining with contrastive learning")
 parser.add_argument(
@@ -102,7 +102,7 @@ dev_dataloader = pretraining_dataset(dev_df, args.wav_folder, neural_augmentatio
 dev_dataloader = DataLoader(dev_dataloader, shuffle=True, batch_size=args.batch_size, num_workers=args.n_workers)
 
 # model initialization
-model = AutoModelForAudioClassification.from_pretrained(args.model_name, output_hidden_states=True)
+model = AutoModelForAudioClassification.from_pretrained(args.model_name, output_hidden_states=True, num_labels=6)
 model.to(device)
 
 # training parameters configuration
@@ -164,3 +164,6 @@ print('Training finished! Best model found at epoch %5d with a dev loss value of
 with open(args.output_log_file, "a") as f:
     f.write('Training finished! Best model found at epoch %5d with a dev loss value of %.8f\n' % (best_epoch, best_loss))
 
+#package_to_hub(model=model, # Our trained model
+#               model_name=model_name, # The name of our trained model 
+#               commit_message='gender_invariant_wav2vec2_base')

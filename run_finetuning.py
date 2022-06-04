@@ -11,7 +11,8 @@ import torch.nn as nn
 from sklearn.utils import class_weight
 import argparse
 from tqdm import tqdm
-from datasetss.finetuning_dataset import finetuning_dataset
+from custom_datasets.finetuning_dataset import finetuning_dataset
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -35,15 +36,15 @@ class WeightedTrainer(Trainer):
 """ Define Metric """
 def compute_metrics(pred):
     labels = pred.label_ids
-    preds = np.argmax(pred.predictions, axis=1)
+    preds = np.argmax(pred.predictions[0], axis=1)
     precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='weighted')
     uar = recall_score(labels, preds, average='macro')
     acc = accuracy_score(labels, preds)
 
-    print('F1 score: ' + str(f1))
-    print('Accuracy: ' + str(acc))
-    print('Precision: ' + str(precision))
-    print('Recall: ' + str(recall))
+    # print('F1 score: ' + str(f1))
+    # print('Accuracy: ' + str(acc))
+    # print('Precision: ' + str(precision))
+    # print('Recall: ' + str(recall))
     print('UAR: ' + str(uar))
       
     return {
@@ -65,6 +66,10 @@ def parse_cmd_line_params():
     parser.add_argument(
         "--pretrained_model",
         help="Pretrained model to be finetuned",
+        required=True)
+    parser.add_argument(
+        "--feature_extractor",
+        help="Feature extractor checkpoint to be loaded",
         required=True)
     parser.add_argument(
         "--batch_size",
@@ -120,20 +125,22 @@ if __name__ == '__main__':
         df_train.loc[index,'filename'] = path + df_train.loc[index,'filename']
         df_train.loc[index,'label'] = label2id[df_train.loc[index,'label']]
     df_train['label'] = df_train['label'].astype(int)
-    #df_train.to_csv('df_train.csv', index=False)
 
     df_valid = pd.read_csv(os.path.join(args.csv_folder, 'devel.csv'))
     for index in tqdm(df_valid.index):
         df_valid.loc[index,'filename'] = path + df_valid.loc[index,'filename']
         df_valid.loc[index,'label'] = label2id[df_valid.loc[index,'label']]
     df_valid['label'] = df_valid['label'].astype(int)
-    #df_valid.to_csv('df_valid.csv', index=False)
 
 
     """ Define Model """
-    # model_checkpoint = "facebook/wav2vec2-xls-r-300m"
-
-    model_checkpoint = "microsoft/wavlm-large"  
+    if args.feature_extractor == 'wav2vec2':
+        model_checkpoint = "facebook/wav2vec2-base"
+    elif args.feature_extractor == 'wavlm':
+        model_checkpoint = "microsoft/wavlm-base"  
+    else:
+        print('Feature Extractor Checkpoint not valid! Try again!')
+        exit()
     model = torch.load(args.pretrained_model) 
     feature_extractor = AutoFeatureExtractor.from_pretrained(model_checkpoint)
     '''
@@ -152,11 +159,13 @@ if __name__ == '__main__':
     """ Build Dataset """
     train_dataset = finetuning_dataset(df_train, feature_extractor, max_duration, device)
     valid_dataset = finetuning_dataset(df_valid, feature_extractor, max_duration, device)
+    print("LEN TRAIN DATASET", len(train_dataset))
+    print("LEN VALID DATASET", len(valid_dataset))  
 
     """ Training Model """
     model_name = model_checkpoint.split("/")[-1]
     batch_size = args.batch_size
-    output_dir = path + model_name + "-finetuned-vocalisation"
+    output_dir = model_name + "-finetuned-vocalisation"
 
     # Define args
     training_args = TrainingArguments(
@@ -166,16 +175,15 @@ if __name__ == '__main__':
         save_strategy = "epoch",
         learning_rate=args.learning_rate,
         per_device_train_batch_size=batch_size,
-        gradient_accumulation_steps=4,
+        gradient_accumulation_steps=1,
         per_device_eval_batch_size=batch_size,
         num_train_epochs=args.n_epochs,
         warmup_ratio=0.1,
-        logging_steps=30,
-        eval_steps=30,
-        save_steps=30,
+        logging_steps=int(len(train_dataset)/batch_size),
+        eval_steps=int(len(valid_dataset)/batch_size),
         save_total_limit=2,
         load_best_model_at_end=True,
-        metric_for_best_model="accuracy",
+        metric_for_best_model="uar",
         fp16=True,
         fp16_full_eval=True,
         dataloader_num_workers=args.n_workers,
