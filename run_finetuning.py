@@ -1,8 +1,7 @@
 import os
 import torch
-from transformers import TrainingArguments
-from transformers import Trainer
-from transformers import AutoFeatureExtractor, EarlyStoppingCallback
+from transformers import TrainingArguments, Trainer
+from transformers import AutoFeatureExtractor, EarlyStoppingCallback, AutoModelForAudioClassification
 import numpy as np 
 import pandas as pd
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score, recall_score
@@ -36,7 +35,10 @@ class WeightedTrainer(Trainer):
 """ Define Metric """
 def compute_metrics(pred):
     labels = pred.label_ids
-    preds = np.argmax(pred.predictions[0], axis=1)
+    if args.feature_extractor == 'wav2vec2' or args.feature_extractor == 'wavlm':
+        preds = np.argmax(pred.predictions, axis=1)
+    else:
+        preds = np.argmax(pred.predictions[0], axis=1)
     precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='weighted')
     uar = recall_score(labels, preds, average='macro')
     acc = accuracy_score(labels, preds)
@@ -157,20 +159,29 @@ if __name__ == '__main__':
     else:
         print('Feature Extractor Checkpoint not valid! Try again!')
         exit()
-    model = torch.load(args.pretrained_model) 
+
+    if args.pretrained_model == 'wav2vec2-base':
+        model = AutoModelForAudioClassification.from_pretrained(
+            'facebook/' + args.pretrained_model, 
+            num_labels=num_labels,
+            label2id=label2id,
+            id2label=id2label,
+            local_files_only=True)
+    elif args.pretrained_model == 'wavlm-base':
+        model = AutoModelForAudioClassification.from_pretrained(
+            'microsoft/' + args.pretrained_model, 
+            num_labels=num_labels,
+            label2id=label2id,
+            id2label=id2label,
+            local_files_only=True)
+    else:
+        model = torch.load(args.pretrained_model) 
+        model.num_labels = num_labels
+        model.label2id=label2id,
+        model.id2label=id2label
+
     feature_extractor = AutoFeatureExtractor.from_pretrained(model_checkpoint)
-    '''
-    model = AutoModelForAudioClassification.from_pretrained(
-        pretrained_model, 
-        num_labels=num_labels,
-        label2id=label2id,
-        id2label=id2label,
-        local_files_only=True
-    )
-    '''
-    model.num_labels = num_labels
-    model.label2id=label2id,
-    model.id2label=id2label
+
 
     """ Build Dataset """
     train_dataset = finetuning_dataset(df_train, args.wav_folder, feature_extractor, max_duration, device, neural_augmentation=args.neural_augmentation, traditional_augmentation=args.traditional_augmentation)
