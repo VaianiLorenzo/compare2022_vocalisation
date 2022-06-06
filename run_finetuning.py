@@ -113,6 +113,10 @@ def parse_cmd_line_params():
     traditional_parser.add_argument('--traditional_augmentation', dest='traditional_augmentation', action='store_true')
     traditional_parser.add_argument('--no-traditional_augmentation', dest='traditional_augmentation', action='store_false')
     parser.set_defaults(traditional_augmentation=True)
+    valid_aug_parser = parser.add_mutually_exclusive_group(required=False)
+    valid_aug_parser.add_argument('--valid_aug', dest='valid_aug', action='store_true')
+    valid_aug_parser.add_argument('--no-valid_aug', dest='valid_aug', action='store_false')
+    parser.set_defaults(valid_aug=False)
     args = parser.parse_args()
     return args
 
@@ -177,7 +181,7 @@ if __name__ == '__main__':
 
     """ Build Dataset """
     train_dataset = finetuning_dataset(df_train, args.wav_folder, feature_extractor, max_duration, device, neural_augmentation=args.neural_augmentation, traditional_augmentation=args.traditional_augmentation)
-    valid_dataset = finetuning_dataset(df_valid, args.wav_folder, feature_extractor, max_duration, device, neural_augmentation=args.neural_augmentation, traditional_augmentation=args.traditional_augmentation)
+    valid_dataset = finetuning_dataset(df_valid, args.wav_folder, feature_extractor, max_duration, device, neural_augmentation=(args.neural_augmentation and args.valid_aug), traditional_augmentation=(args.traditional_augmentation and args.valid_aug))
 
     """ Training Model """
     model_name = model_checkpoint.split("/")[-1]
