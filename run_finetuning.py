@@ -160,20 +160,12 @@ if __name__ == '__main__':
         print('Feature Extractor Checkpoint not valid! Try again!')
         exit()
 
-    if args.pretrained_model == 'wav2vec2-base':
+    if args.pretrained_model == 'wav2vec2-base' or args.pretrained_model == 'wavlm-base':
         model = AutoModelForAudioClassification.from_pretrained(
-            'facebook/' + args.pretrained_model, 
+            model_checkpoint, 
             num_labels=num_labels,
             label2id=label2id,
-            id2label=id2label,
-            local_files_only=True)
-    elif args.pretrained_model == 'wavlm-base':
-        model = AutoModelForAudioClassification.from_pretrained(
-            'microsoft/' + args.pretrained_model, 
-            num_labels=num_labels,
-            label2id=label2id,
-            id2label=id2label,
-            local_files_only=True)
+            id2label=id2label)
     else:
         model = torch.load(args.pretrained_model) 
         model.num_labels = num_labels
