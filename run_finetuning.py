@@ -35,7 +35,7 @@ class WeightedTrainer(Trainer):
 """ Define Metric """
 def compute_metrics(pred):
     labels = pred.label_ids
-    if args.feature_extractor == 'wav2vec2' or args.feature_extractor == 'wavlm':
+    if args.pretrained_model == 'wav2vec2-base' or args.pretrained_model == 'wavlm-base':
         preds = np.argmax(pred.predictions, axis=1)
     else:
         preds = np.argmax(pred.predictions[0], axis=1)
