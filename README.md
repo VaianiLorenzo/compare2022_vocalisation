@@ -39,6 +39,6 @@ python run_finetuning.py \
   --n_epochs 200 \
   --learning_rate 3e-5 \
   --neural_augmentation   \
-  --traditional_augmentation
+  --traditional_augmentation \
   --no-valid_aug
 ```
