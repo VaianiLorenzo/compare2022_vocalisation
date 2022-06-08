@@ -39,6 +39,20 @@ python run_finetuning.py \
   --n_epochs 200 \
   --learning_rate 3e-5 \
   --neural_augmentation   \
-  --traditional_augmentation
+  --traditional_augmentation \
   --no-valid_aug
+```
+
+## Test Prediction
+
+Run test predictions:
+```
+python predict_test.py 
+  --csv_folder data/dist/lab \
+  --wav_folder data/dist/wav \
+  --checkpoint_path data/wavlm_trad_trad_finetuned/checkpoint-4800 \
+  --feature_extractor wavlm \
+  --output_file wavlm_traditional_traditional_predictions.csv \
+  --batch_size 4 \
+  --n_workers 4
 ```
