@@ -52,15 +52,17 @@ class finetuning_dataset(data.Dataset):
             filename = os.path.join(self.wav_folder, self.files[index])
 
         inputs = self.feature_extractor(
-            librosa.resample(np.asarray(torchaudio.load(filename)[0]), 48_000, 16_000).squeeze(0),
+            [librosa.load(filename, mono=True, sr=16000, res_type='soxr_qq')[0]],
             sampling_rate=self.feature_extractor.sampling_rate, 
             return_tensors="pt",
             max_length=int(self.feature_extractor.sampling_rate * self.max_duration), 
             truncation=True,
             padding='max_length'
         )#.to(self.device)
+
         item = {'input_values': inputs['input_values'].squeeze(0)}
-        item["labels"] = torch.tensor(self.labels[index])
+        item["labels"] = torch.tensor(self.labels[index] if self.labels[index] != "?" else -1)
+        item["filename"] = self.files[index]
         return item
 
     def __len__(self):
