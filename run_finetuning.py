@@ -142,6 +142,7 @@ if __name__ == '__main__':
         label2id[label] = str(i)
         id2label[str(i)] = label
     num_labels = len(id2label)
+    print(label2id)
 
     for index in tqdm(df_train.index):
         # df_train.loc[index,'filename'] = path + df_train.loc[index,'filename']
