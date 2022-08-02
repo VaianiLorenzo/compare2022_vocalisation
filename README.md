@@ -1,4 +1,4 @@
-# ComParE 2022 - Vocalisation Challange
+# ComParE 2022 - Vocalisation Challenge
 
 This repository contains the code for the paper "Transformer-based Non-Verbal Emotion Recognition: Exploring Model Portability across Speakers’ Genders" submitted for the ComParE 2022 Vocalisation Sub-Challenge.
 
