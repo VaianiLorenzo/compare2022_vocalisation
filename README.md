@@ -1,8 +1,8 @@
-# ComParE 2022 - Vocalisation Challenge
+# Transformer-based Non-Verbal Emotion Recognition: Exploring Model Portability across Speakers' Genders
 
-This repository contains the code for the paper "Transformer-based Non-Verbal Emotion Recognition: Exploring Model Portability across Speakers’ Genders" submitted for the ComParE 2022 Vocalisation Sub-Challenge.
+This repository contains the code for the paper "Transformer-based Non-Verbal Emotion Recognition: Exploring Model Portability across Speakers’ Genders" submitted for the [ComParE 2022](http://www.compare.openaudio.eu/2022-2/) Vocalisation Sub-Challenge.
 
-Additional information will be provided upon paper acceptance.
+Recognizing emotions in non-verbal audio tracks requires a deep understanding of their underlying features. Traditional classifiers relying on excitation, prosodic, and vocal traction features are not always capable of effectively generalizing across speakers' genders. In the ComParE 2022 vocalisation sub-challenge we explore the use of a Transformer architecture trained on contrastive audio examples. We leverage augmented data to learn robust non-verbal emotion classifiers. We also investigate the impact of different audio transformations, including neural voice conversion, on the classifier capability to generalize across speakers' genders. The empirical findings indicate that neural voice conversion is beneficial in the pretraining phase, yielding an improved model generality, whereas is harmful at the finetuning stage as hinders model specialization for the task of non-verbal emotion recognition.
 
 ## Pretraining
 
@@ -57,4 +57,24 @@ python predict_test.py
   --output_file wavlm_traditional_traditional_predictions.csv \
   --batch_size 4 \
   --n_workers 4
+```
+
+## Citation
+```
+@inproceedings{10.1145/3551876.3554801,
+  author = {Vaiani, Lorenzo and Koudounas, Alkis and La Quatra, Moreno and Cagliero, Luca and Garza, Paolo and Baralis, Elena},
+  title = {Transformer-Based Non-Verbal Emotion Recognition: Exploring Model Portability across Speakers' Genders},
+  year = {2022},
+  isbn = {9781450394840},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3551876.3554801},
+  doi = {10.1145/3551876.3554801},
+  booktitle = {Proceedings of the 3rd International on Multimodal Sentiment Analysis Workshop and Challenge},
+  pages = {89–94},
+  numpages = {6},
+  keywords = {data augmentation, contrastive learning, non-verbal emotion recognition, audio classification},
+  location = {Lisboa, Portugal},
+  series = {MuSe' 22}
+}
 ```
