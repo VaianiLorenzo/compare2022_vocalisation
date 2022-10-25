@@ -3,6 +3,11 @@
 This repository contains the code for the paper "Transformer-based Non-Verbal Emotion Recognition: Exploring Model Portability across Speakers’ Genders" submitted for the [ComParE 2022](http://www.compare.openaudio.eu/2022-2/) Vocalisation Sub-Challenge.
 
 Recognizing emotions in non-verbal audio tracks requires a deep understanding of their underlying features. Traditional classifiers relying on excitation, prosodic, and vocal traction features are not always capable of effectively generalizing across speakers' genders. In the ComParE 2022 vocalisation sub-challenge we explore the use of a Transformer architecture trained on contrastive audio examples. We leverage augmented data to learn robust non-verbal emotion classifiers. We also investigate the impact of different audio transformations, including neural voice conversion, on the classifier capability to generalize across speakers' genders. The empirical findings indicate that neural voice conversion is beneficial in the pretraining phase, yielding an improved model generality, whereas is harmful at the finetuning stage as hinders model specialization for the task of non-verbal emotion recognition.
+More details can be found in the [paper](https://dl.acm.org/doi/abs/10.1145/3551876.3554801).
+
+<p align="center">
+  <img src="Vocalisation.jpg" />
+</p>
 
 ## Pretraining
 
